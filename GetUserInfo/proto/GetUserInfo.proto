@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package GetUserInfo;
+
+option go_package = "./proto;GetUserInfo";
+
+service GetUserInfo {
+	rpc GetUserInfo(GetUserInfoRequest) returns (GetUserInfoResponse) {}
+
+}
+
+message GetUserInfoRequest {
+	string session_id=1;
+}
+
+message GetUserInfoResponse {
+	string errno=1;
+	string err_msg=2;
+	string mobile=3;
+	string real_name=4;
+	string id_card=5;
+	string avatar_url=6;
+	string name=7;
+	string user_id=8;
+}

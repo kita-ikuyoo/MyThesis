@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package PostRet;
+
+option go_package = "./proto;PostRet";
+
+service PostRet {
+	rpc PostRet(PostRetRequest) returns (PostRetResponse) {}
+
+}
+
+message PostRetRequest {
+	string mobile = 1;
+	string sms_code=2;
+	string password=3;
+}
+
+message PostRetResponse {
+	string error = 1;
+	string errmsg=2;
+	string session_id=3;
+}
+

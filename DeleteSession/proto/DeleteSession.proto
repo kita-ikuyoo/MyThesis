@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package DeleteSession;
+
+option go_package = "./proto;DeleteSession";
+
+service DeleteSession {
+	rpc DeleteSession(DeleteSessionRequest) returns (DeleteSessionResponse) {}
+}
+
+message DeleteSessionRequest {
+	string session_id = 1;
+}
+
+message DeleteSessionResponse {
+	string errno = 1;
+	string err_msg=2;
+}

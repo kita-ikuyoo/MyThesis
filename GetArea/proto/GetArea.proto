@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package GetArea;
+
+option go_package = "./proto;GetArea";
+
+service GetArea {
+	// 获取地区信息服务
+	rpc GetArea(CallRequest) returns (CallResponse) {}
+	rpc ClientStream(stream ClientStreamRequest) returns (ClientStreamResponse) {}
+	rpc ServerStream(ServerStreamRequest) returns (stream ServerStreamResponse) {}
+	rpc BidiStream(stream BidiStreamRequest) returns (stream BidiStreamResponse) {}
+}
+
+message CallRequest {
+
+}
+
+message CallResponse {
+	// 错误码
+	string Errno = 1;
+	// 错误信息
+	string ErrMsg = 2;
+	message Areas{
+		// 地区id
+		int32 Aid = 1;
+		// 地区名称
+		string Aname = 2;
+	}
+	// 返回的地址，切片的形式
+	repeated Areas Data=3;
+
+}
+
+message ClientStreamRequest {
+	int64 stroke = 1;
+}
+
+message ClientStreamResponse {
+	int64 count = 1;
+}
+
+message ServerStreamRequest {
+	int64 count = 1;
+}
+
+message ServerStreamResponse {
+	int64 count = 1;
+}
+
+message BidiStreamRequest {
+	int64 stroke = 1;
+}
+
+message BidiStreamResponse {
+	int64 stroke = 1;
+}
