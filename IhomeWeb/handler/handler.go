@@ -6,11 +6,15 @@ import (
 	getimagecd "IHome/GetImageCd/proto"
 	getsession "IHome/GetSession/proto"
 	getsmscd "IHome/GetSmsCd/proto"
+	getuserhouses "IHome/GetUserHouses/proto"
 	getuserinfo "IHome/GetUserInfo/proto"
 	models "IHome/IhomeWeb/model"
 	"IHome/IhomeWeb/utils"
+	postavatar "IHome/PostAvatar/proto"
+	posthouses "IHome/PostHouses/proto"
 	postlogin "IHome/PostLogin/proto"
 	postret "IHome/PostRet/proto"
+	postuserauth "IHome/PostUserAuth/proto"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -23,6 +27,7 @@ import (
 	"go-micro.dev/v4/registry"
 	"image"
 	"image/png"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"regexp"
@@ -37,6 +42,10 @@ var (
 	PostLoginServerName     = "go.micro.server.PostLogin"
 	DeleteSessionServerName = "go.micro.server.DeleteSession"
 	GetUserInfoServerName   = "go.micro.server.GetUserInfo"
+	PostAvatarServerName    = "go.micro.server.PostAvatar"
+	PostUserAuthServerName  = "go.micro.server.PostUserAuth"
+	GetUserHousesServerName = "go.micro.server.GetUserHouses"
+	PostHousesServerName    = "go.micro.server.PostHouses"
 )
 
 func GetArea(w http.ResponseWriter, _ *http.Request, _ httprouter.Params) {
@@ -582,12 +591,10 @@ func GetUserInfo(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 }
-
-/*
 func PostAvatar(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	beego.Info("上传用户touxiang PostAvatar /api/v1.0/user/avatar")
+	beego.Info("上传用户头像 PostAvatar /api/v1.0/user/avatar")
 	//获取sessionid
-	cookie, err := r.Cookie("IHomelogin")
+	cookie, err := r.Cookie("userlogin")
 	if err != nil || cookie.Value == "" {
 		//准备返回给前端的map
 		response := map[string]interface{}{
@@ -620,8 +627,11 @@ func PostAvatar(w http.ResponseWriter, r *http.Request, params httprouter.Params
 			return
 		}
 	}
-	//文件校验
+	beego.Info("文件大小", header.Size)
+	beego.Info("文件名", header.Filename)
+	//创建文件大小的切片，这是因为fastdfs中上传文件的操作需要
 	filebuffer := make([]byte, header.Size)
+	//将file中的数据读入filebuffer
 	_, err = file.Read(filebuffer)
 	if err != nil {
 		beego.Info("get file err:", err)
@@ -641,33 +651,35 @@ func PostAvatar(w http.ResponseWriter, r *http.Request, params httprouter.Params
 	}
 
 	//创建 grpc 客户端
-	cli := grpc.NewService()
-	//客户端初始化
-	cli.Init()
-
-	//通过protobuf生成文件创建连接服务端的客户端句柄
-	exampleClient := POSTAVATAR.NewExampleService("go.micro.srv.PostAvatar", cli.Client())
-	//通过句柄调用服务端函数
-	rsp, err := exampleClient.PostAvatar(context.TODO(), &POSTAVATAR.Request{
-		Filename:  header.Filename,
-		Filesize:  header.Size,
-		Sessionid: cookie.Value,
+	consulReg := consul.NewRegistry(func(options *registry.Options) {
+		options.Addrs = []string{"127.0.0.1:8500"}
+	})
+	service := micro.NewService(
+		micro.Registry(consulReg),
+		micro.Client(grpcc.NewClient()),
+	)
+	mc := postavatar.NewPostAvatarService(PostAvatarServerName, service.Client())
+	rsp, err := mc.PostAvatar(context.TODO(), &postavatar.PostAvatarRequest{
+		SessionId: cookie.Value,
+		FileExt:   header.Filename,
+		FileSize:  header.Size,
 		Avatar:    filebuffer,
 	})
-
-	//判断是否成功
+	// 调用服务传回句柄
 	if err != nil {
-		http.Error(w, err.Error(), 500)
+		log.Println(err.Error())
+		beego.Info("wrong")
 		return
 	}
 
 	//返回数据
 	data := make(map[string]interface{})
+	//这里是将服务端返回的url进行拼接后返回给前端
 	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
 	//准备返回给前端的map
 	response := map[string]interface{}{
 		"errno":  rsp.Errno,
-		"errmsg": rsp.Errmsg,
+		"errmsg": rsp.ErrMsg,
 		"data":   data,
 	}
 	log.Println("data is ", data)
@@ -679,6 +691,261 @@ func PostAvatar(w http.ResponseWriter, r *http.Request, params httprouter.Params
 		return
 	}
 }
+
+// 用户信息检查
+func GetUserAuth(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	beego.Info("用户信息检查 GetUserAuth /api/v1.0/user/auth")
+	cookie, err := r.Cookie("userlogin")
+	if err != nil || cookie.Value == "" {
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		//设置返回数据的格式
+		w.Header().Set("Content-Type", "application/json")
+		//将map转化为json 返回给前端
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		return
+	}
+	consulReg := consul.NewRegistry(func(options *registry.Options) {
+		options.Addrs = []string{"127.0.0.1:8500"}
+	})
+	service := micro.NewService(
+		micro.Registry(consulReg),
+		micro.Client(grpcc.NewClient()),
+	)
+	mc := getuserinfo.NewGetUserInfoService(GetUserInfoServerName, service.Client())
+	rsp, err := mc.GetUserInfo(context.TODO(), &getuserinfo.GetUserInfoRequest{
+		SessionId: cookie.Value,
+	})
+	if err != nil {
+		beego.Info("调用deletesession远程服务失败")
+		http.Error(w, err.Error(), 500)
+		return
+
+	}
+	//准备返回数据
+	data := make(map[string]interface{})
+	data["user_id"] = rsp.UserId
+	data["name"] = rsp.Name
+	data["mobile"] = rsp.Mobile
+	data["real_name"] = rsp.RealName
+	data["id_card"] = rsp.IdCard
+	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
+	//准备返回给前端的map
+	response := map[string]interface{}{
+		"errno":  rsp.Errno,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	// encode and write the response as json
+	//设置返回数据的格式
+	w.Header().Set("Content-Type", "application/json")
+	//将map转化为json 返回给前端
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+func PostUserAuth(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	fmt.Println("更新实名认证检测  URL: /api/v1.0/user/auth PostUserAuth ")
+	//接受 前端发送过来数据的
+	var request map[string]interface{}
+	// 将前端 json 数据解析到 map当中
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	//数据校验
+	if request["real_name"].(string) == "" || request["id_card"].(string) == "" {
+		//准备返回给前端的map
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_NODATA,
+			"errmsg": utils.RecodeText(utils.RECODE_NODATA),
+		}
+		//设置返回数据的格式
+		w.Header().Set("Content-Type", "application/json")
+		//将map转化为json 返回给前端
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+	//获取sessionid
+	cookie, err := r.Cookie("userlogin")
+	if err != nil || cookie.Value == "" {
+		//准备返回给前端的map
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		//设置返回数据的格式
+		w.Header().Set("Content-Type", "application/json")
+		//将map转化为json 返回给前端
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+
+	//创建 grpc 客户端
+	consulReg := consul.NewRegistry(func(options *registry.Options) {
+		options.Addrs = []string{"127.0.0.1:8500"}
+	})
+	service := micro.NewService(
+		micro.Registry(consulReg),
+		micro.Client(grpcc.NewClient()),
+	)
+	mc := postuserauth.NewPostUserAuthService(PostUserAuthServerName, service.Client())
+	rsp, err := mc.PostUserAuth(context.TODO(), &postuserauth.PostUserAuthRequest{
+		SessionId: cookie.Value,
+		RealName:  request["real_name"].(string),
+		IdCard:    request["id_card"].(string),
+	})
+	if err != nil {
+		beego.Info("调用postuserauth远程服务失败", err)
+		http.Error(w, err.Error(), 500)
+		return
+
+	}
+
+	//刷新cookie时间
+	cookienew := http.Cookie{Name: "userlogin", Value: cookie.Value, Path: "/", MaxAge: 600}
+	http.SetCookie(w, &cookienew)
+	//准备返回给前端的map
+	response := map[string]interface{}{
+		"errno":  rsp.Errno,
+		"errmsg": rsp.ErrMsg,
+	}
+	//设置返回数据的格式
+	w.Header().Set("Content-Type", "application/json")
+	//将map转化为json 返回给前端
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+func GetUserHouses(w http.ResponseWriter, req *http.Request, _ httprouter.Params) {
+	beego.Info("获取当前用户所发布的房源 GetUserHouses /api/v1.0/user/houses")
+
+	cookie, err := req.Cookie("userlogin")
+	if err != nil || cookie.Value == "" {
+		//准备返回给前端的map
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		//设置返回数据的格式
+		w.Header().Set("Content-Type", "application/json")
+		//将map转化为json 返回给前端
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+	//创建 grpc 客户端
+	consulReg := consul.NewRegistry(func(options *registry.Options) {
+		options.Addrs = []string{"127.0.0.1:8500"}
+	})
+	service := micro.NewService(
+		micro.Registry(consulReg),
+		micro.Client(grpcc.NewClient()),
+	)
+	mc := getuserhouses.NewGetUserHousesService(GetUserHousesServerName, service.Client())
+	rsp, err := mc.GetUserHouses(context.TODO(), &getuserhouses.GetUserHousesRequest{
+		SessionId: cookie.Value,
+	})
+	if err != nil {
+		beego.Info("调用getuserhouses远程服务失败", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	//房屋切片信息
+	house_list := []models.House{}
+	json.Unmarshal(rsp.Houses, &house_list)
+	//将房屋切片信息转换成map切片返回给前端
+	// houses是一个存储了map的切片
+	var houses []interface{}
+	for _, houseinfo := range house_list {
+		houses = append(houses, houseinfo.To_house_info())
+	}
+	data_map := make(map[string]interface{})
+	data_map["houses"] = houses
+	//返回数据
+	response := map[string]interface{}{
+		"errno":  rsp.Errno,
+		"errmsg": rsp.ErrMsg,
+		"data":   data_map,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+func PostHouses(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	// decode the incoming request as json
+	beego.Info("PostHouses 发布房源信息 /api/v1.0/houses ")
+	// body就是一个json的二进制流
+	body, _ := ioutil.ReadAll(r.Body)
+
+	cookie, err := r.Cookie("userlogin")
+	if err != nil || cookie.Value == "" {
+		//准备返回给前端的map
+		response := map[string]interface{}{
+			"errno":  utils.RECODE_SESSIONERR,
+			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
+		}
+		//设置返回数据的格式
+		w.Header().Set("Content-Type", "application/json")
+		//将map转化为json 返回给前端
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			http.Error(w, err.Error(), 500)
+			return
+		}
+	}
+	// 这里我们前端传来的信息转为二进制流，发给服务端
+	consulReg := consul.NewRegistry(func(options *registry.Options) {
+		options.Addrs = []string{"127.0.0.1:8500"}
+	})
+	service := micro.NewService(
+		micro.Registry(consulReg),
+		micro.Client(grpcc.NewClient()),
+	)
+	mc := posthouses.NewPostHousesService(PostHousesServerName, service.Client())
+	rsp, err := mc.PostHouses(context.TODO(), &posthouses.PostHousesRequest{
+		SessionId: cookie.Value,
+		Houses:    body,
+	})
+	if err != nil {
+		beego.Info("调用posthouses远程服务失败", err)
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	data := make(map[string]interface{})
+	data["house_id"] = rsp.HouseId
+	response := map[string]interface{}{
+		"errno":  rsp.Errno,
+		"errmsg": rsp.ErrMsg,
+		"data":   data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	// encode and write the response as json
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+/*
 
 func PutUserInfo(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	fmt.Println("更新用户名   PutUserInfo   /api/v1.0/user/name")
@@ -763,228 +1030,6 @@ func PutUserInfo(w http.ResponseWriter, r *http.Request, params httprouter.Param
 
 }
 
-func GetUserAuth(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	fmt.Println("获取用户信息 GetUserInfo /api/v1.0/user")
-	cookie, err := r.Cookie("IHomelogin")
-	if err != nil || cookie.Value == "" {
-		response := map[string]interface{}{
-			"errno":  utils.RECODE_SESSIONERR,
-			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
-		}
-		//设置返回数据的格式
-		w.Header().Set("Content-Type", "application/json")
-		//将map转化为json 返回给前端
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		return
-	}
-	//创建 grpc 客户端
-	cli := grpc.NewService()
-	//客户端初始化
-	cli.Init()
-
-	//通过protobuf 生成文件 创建 连接服务端 的客户端句柄
-	exampleClient := GETUSERINFO.NewExampleService("go.micro.srv.GetUserInfo", cli.Client())
-
-	//通过句柄调用服务端函数
-	rsp, err := exampleClient.GetUserInfo(context.TODO(), &GETUSERINFO.Request{
-		Sessionid: cookie.Value,
-	})
-
-	//判断是否成功
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	//准备返回数据
-	data := make(map[string]interface{})
-	data["user_id"] = rsp.UserId
-	data["name"] = rsp.Name
-	data["mobile"] = rsp.Mobile
-	data["real_name"] = rsp.RealName
-	data["id_card"] = rsp.IdCard
-	data["avatar_url"] = utils.AddDomain2Url(rsp.AvatarUrl)
-	//准备返回给前端的map
-	response := map[string]interface{}{
-		"errno":  rsp.Errno,
-		"errmsg": rsp.Errmsg,
-		"data":   data,
-	}
-	// encode and write the response as json
-	//设置返回数据的格式
-	w.Header().Set("Content-Type", "application/json")
-	//将map转化为json 返回给前端
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-}
-
-func PostUserAuth(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	fmt.Println("更新实名认证检测  URL: /api/v1.0/user/auth PostUserAuth ")
-	//接受 前端发送过来数据的
-	var request map[string]interface{}
-	// 将前端 json 数据解析到 map当中
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	//数据校验
-	if request["real_name"].(string) == "" || request["id_card"].(string) == "" {
-		//准备返回给前端的map
-		response := map[string]interface{}{
-			"errno":  utils.RECODE_NODATA,
-			"errmsg": utils.RecodeText(utils.RECODE_NODATA),
-		}
-		//设置返回数据的格式
-		w.Header().Set("Content-Type", "application/json")
-		//将map转化为json 返回给前端
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-	}
-	//获取sessionid
-	cookie, err := r.Cookie("IHomelogin")
-	if err != nil || cookie.Value == "" {
-		//准备返回给前端的map
-		response := map[string]interface{}{
-			"errno":  utils.RECODE_SESSIONERR,
-			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
-		}
-		//设置返回数据的格式
-		w.Header().Set("Content-Type", "application/json")
-		//将map转化为json 返回给前端
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-	}
-
-	//创建 grpc 客户端
-	cli := grpc.NewService()
-	//客户端初始化
-	cli.Init()
-
-	//通过protobuf 生成文件 创建 连接服务端 的客户端句柄
-	exampleClient := POSTUSERAUTH.NewExampleService("go.micro.srv.PostUserAuth", cli.Client())
-	//通过句柄调用服务端函数
-	rsp, err := exampleClient.PostUserAuth(context.TODO(), &POSTUSERAUTH.Request{
-		RealName:  request["real_name"].(string),
-		IdCard:    request["id_card"].(string),
-		SessionId: cookie.Value,
-	})
-	//判断是否成功
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	//刷新cookie时间
-	cookienew := http.Cookie{Name: "IHomelogin", Value: cookie.Value, Path: "/", MaxAge: 600}
-	http.SetCookie(w, &cookienew)
-	//准备返回给前端的map
-	response := map[string]interface{}{
-		"errno":  rsp.Errno,
-		"errmsg": rsp.Errmsg,
-	}
-	//设置返回数据的格式
-	w.Header().Set("Content-Type", "application/json")
-	//将map转化为json 返回给前端
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-}
-
-func GetUserHouses(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	beego.Info("获取当前用户所发布的房源 GetUserHouses /api/v1.0/user/houses")
-	cli := grpc.NewService()
-	cli.Init()
-	// call the backend service
-	exampleClient := GETUSERHOUSES.NewExampleService("go.micro.srv.GetUserHouses", cli.Client())
-	userlogin, err := r.Cookie("IHomelogin")
-	if err != nil || userlogin.Value != "" {
-		//返回数据
-		response := map[string]interface{}{
-			"errno":  utils.RECODE_SESSIONERR,
-			"errmsg": utils.RecodeText(utils.RECODE_SESSIONERR),
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		// encode and write the response as json
-		if err := json.NewEncoder(w).Encode(response); err != nil {
-			http.Error(w, err.Error(), 500)
-			return
-		}
-		return
-	}
-	rsp, err := exampleClient.GetUserHouses(context.TODO(), &GETUSERHOUSES.Request{
-		Sessionid: userlogin.Value,
-	})
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-	//房屋切片信息
-	house_list := []models.House{}
-	json.Unmarshal(rsp.Mix, &house_list)
-	//将房屋切片信息转换成map切片返回给前端
-	var houses []interface{}
-	for _, houseinfo := range house_list {
-		houses = append(houses, houseinfo.To_house_info())
-	}
-	data_map := make(map[string]interface{})
-	data_map["houses"] = houses
-	//返回数据
-	response := map[string]interface{}{
-		"errno":  rsp.Errno,
-		"errmsg": rsp.Errmsg,
-		"data":   data_map,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	// encode and write the response as json
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-}
-
-func PostHouses(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
-	// decode the incoming request as json
-	beego.Info("PostHouses 发布房源信息 /api/v1.0/houses ")
-	cli := grpc.NewService()
-	cli.Init()
-	// call the backend service
-	exampleClient := GETAREA.NewExampleService("go.micro.srv.GetArea", cli.Client())
-	rsp, err := exampleClient.GetArea(context.TODO(), &GETAREA.Request{})
-	if err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-
-	//接收数据
-	var areas []models.Area
-	for _, value := range rsp.Data {
-		temp := models.Area{Id: int(value.Aid), Name: value.Aname}
-		areas = append(areas, temp)
-	}
-	response := map[string]interface{}{
-		"errno":  rsp.Errno,
-		"errmsg": rsp.Errmsg,
-		"data":   areas,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	// encode and write the response as json
-	if err := json.NewEncoder(w).Encode(response); err != nil {
-		http.Error(w, err.Error(), 500)
-		return
-	}
-}
 
 func PostHouseImage(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
 	beego.Info("发送房屋图片PostHousesImage  /api/v1.0/houses/:id/images")

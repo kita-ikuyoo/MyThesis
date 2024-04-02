@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>爱家-发布新房源</title>
+    <title>链家-发布新房源</title>
     <link href="./plugins/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="./plugins/font-awesome/css/font-awesome.min.css" rel="stylesheet">
     <link href="./css/reset.css" rel="stylesheet">
@@ -33,7 +33,7 @@
                             <input type="text" class="form-control" name="title" id="house-title" required>
                         </div>
                         <div class="form-group">
-                            <label for="house-price">每晚价格</label>
+                            <label for="house-price">房屋价格</label>
                             <input type="number" class="form-control" name="price" id="house-price" required>
                         </div>
                         <div class="form-group">
@@ -58,10 +58,10 @@
                         <h3>详细信息</h3>
                     </div>
                     <div class="house-content">
-                        <div class="form-group">
-                            <label for="house-room-count">出租房间数目</label>
-                            <input type="number" class="form-control" name="room_count" id="house-room-count" required>
-                        </div>
+<!--                        <div class="form-group">-->
+<!--                            <label for="house-room-count">出租房间数目</label>-->
+<!--                            <input type="number" class="form-control" name="room_count" id="house-room-count" required>-->
+<!--                        </div>-->
                         <div class="form-group">
                             <label for="house-acreage">房屋面积</label>
                             <input type="number" class="form-control" name="acreage" id="house-acreage" required>
@@ -82,14 +82,14 @@
                             <label for="house-deposit">押金数额</label>
                             <input type="number" class="form-control" name="deposit" id="house-deposit" required>
                         </div>
-                        <div class="form-group">
-                            <label for="house-min-days">最少入住天数</label>
-                            <input type="number" class="form-control" name="min_days" id="house-min-days" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="house-max-days">最多入住天数</label>
-                            <input type="number" class="form-control" name="max_days" id="house-max-days" placeholder="0表示无限制" required>
-                        </div>
+<!--                        <div class="form-group">-->
+<!--                            <label for="house-min-days">最早入住天数</label>-->
+<!--                            <input type="number" class="form-control" name="min_days" id="house-min-days" required>-->
+<!--                        </div>-->
+<!--                        <div class="form-group">-->
+<!--                            <label for="house-max-days">最多入住天数</label>-->
+<!--                            <input type="number" class="form-control" name="max_days" id="house-max-days" placeholder="0表示无限制" required>-->
+<!--                        </div>-->
                     </div>
                 </li>
                 <li>
@@ -140,48 +140,48 @@
                                      </label>
                                 </div>
                             </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="7">牙具
-                                     </label>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="8">香皂
-                                     </label>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="9">拖鞋
-                                     </label>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="10">手纸
-                                     </label>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="11">毛巾
-                                     </label>
-                                </div>
-                            </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="12">沐浴露、洗发露
-                                     </label>
-                                </div>
-                            </li>
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="7">牙具-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="8">香皂-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="9">拖鞋-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="10">手纸-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="11">毛巾-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="12">沐浴露、洗发露-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
                             <li>
                                 <div class="checkbox">
                                      <label>
@@ -203,13 +203,13 @@
                                      </label>
                                 </div>
                             </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="16">允许做饭
-                                     </label>
-                                </div>
-                            </li>
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="16">允许做饭-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
                             <li>
                                 <div class="checkbox">
                                      <label>
@@ -217,13 +217,13 @@
                                      </label>
                                 </div>
                             </li>
-                            <li>
-                                <div class="checkbox">
-                                     <label>
-                                          <input type="checkbox" name="facility" value="18">允许聚会
-                                     </label>
-                                </div>
-                            </li>
+<!--                            <li>-->
+<!--                                <div class="checkbox">-->
+<!--                                     <label>-->
+<!--                                          <input type="checkbox" name="facility" value="18">允许聚会-->
+<!--                                     </label>-->
+<!--                                </div>-->
+<!--                            </li>-->
                             <li>
                                 <div class="checkbox">
                                      <label>
@@ -291,7 +291,7 @@
             <div class="mask"></div>
         </div>
         <div class="footer">
-            <p><span><i class="fa fa-copyright"></i></span>爱家租房&nbsp;&nbsp;享受家的温馨</p>
+            <p><span><i class="fa fa-copyright"></i></span>链家&nbsp;&nbsp;享受家的温馨</p>
         </div> 
     </div>
     

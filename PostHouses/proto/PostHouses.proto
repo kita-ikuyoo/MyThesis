@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package PostHouses;
+
+option go_package = "./proto;PostHouses";
+
+service PostHouses {
+	rpc PostHouses(PostHousesRequest) returns (PostHousesResponse) {}
+}
+
+message PostHousesRequest {
+	string session_id = 1;
+	bytes houses=2;
+}
+
+message PostHousesResponse {
+	string errno = 1;
+	string err_msg=2;
+	string house_id=3;
+}
+

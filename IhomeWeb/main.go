@@ -50,18 +50,18 @@ func main() {
 	rou.DELETE("/api/v1.0/session", Ihandler.DeleteSession)
 	//获取用户详细信息
 	rou.GET("/api/v1.0/user", Ihandler.GetUserInfo)
-	////用户上传图片
-	//rou.POST("/api/v1.0/user/avatar", handler.PostAvatar)
+	//用户上传图片
+	rou.POST("/api/v1.0/user/avatar", Ihandler.PostAvatar)
 	////请求更新用户名
-	//rou.PUT("/api/v1.0/user/name", handler.PutUserInfo)
-	////身份认证检查 同  获取用户信息   所调用的服务是 GetUserInfo
-	//rou.GET("/api/v1.0/user/auth", handler.GetUserAuth)
-	////实名认证服务
-	//rou.POST("/api/v1.0/user/auth", handler.PostUserAuth)
-	////获取用户已发布房源信息服务
-	//rou.GET("/api/v1.0/user/houses", handler.GetUserHouses)
-	////发送（发布）房源信息服务
-	//rou.POST("/api/v1.0/houses", handler.PostHouses)
+	//rou.PUT("/api/v1.0/user/name", Ihandler.PutUserInfo)
+	//身份认证检查 同  获取用户信息   所调用的服务是 GetUserInfo
+	rou.GET("/api/v1.0/user/auth", Ihandler.GetUserAuth)
+	//实名认证服务   这里一个是posti一个是get所以可以写一样的url
+	rou.POST("/api/v1.0/user/auth", Ihandler.PostUserAuth)
+	//获取用户已发布房源信息服务
+	rou.GET("/api/v1.0/user/houses", Ihandler.GetUserHouses)
+	//发送（发布）房源信息服务
+	rou.POST("/api/v1.0/houses", Ihandler.PostHouses)
 	////发送（上传）房屋图片服务
 	//rou.POST("/api/v1.0/houses/:id/images", handler.PostHouseImage)
 	// 根据Handle源码来看 我需要一个http.Handler

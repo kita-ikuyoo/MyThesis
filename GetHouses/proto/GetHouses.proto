@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package GetHouses;
+
+option go_package = "./proto;GetHouses";
+
+service GetHouses {
+	rpc GetHouses(GetHousesRequest) returns (GetHousesResponse) {}
+
+}
+
+message GetHousesRequest {
+	string session_id = 1;
+	string area_id=2;
+
+}
+
+message GetHousesResponse {
+	string msg = 1;
+}
+

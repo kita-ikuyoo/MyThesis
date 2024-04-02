@@ -5,40 +5,21 @@ package PostAvatar;
 option go_package = "./proto;PostAvatar";
 
 service PostAvatar {
-	rpc Call(CallRequest) returns (CallResponse) {}
-	rpc ClientStream(stream ClientStreamRequest) returns (ClientStreamResponse) {}
-	rpc ServerStream(ServerStreamRequest) returns (stream ServerStreamResponse) {}
-	rpc BidiStream(stream BidiStreamRequest) returns (stream BidiStreamResponse) {}
+	rpc PostAvatar(PostAvatarRequest) returns (PostAvatarResponse) {}
 }
 
-message CallRequest {
-	string name = 1;
+message PostAvatarRequest {
+	string session_id = 1;
+	// binary photo atream
+	bytes Avatar=2;
+	int64 file_size=3;
+	string file_ext=4;
 }
 
-message CallResponse {
-	string msg = 1;
+message PostAvatarResponse {
+	string errno = 1;
+	string err_msg=2;
+	// partial url for avatar
+	string avatar_url=3;
 }
 
-message ClientStreamRequest {
-	int64 stroke = 1;
-}
-
-message ClientStreamResponse {
-	int64 count = 1;
-}
-
-message ServerStreamRequest {
-	int64 count = 1;
-}
-
-message ServerStreamResponse {
-	int64 count = 1;
-}
-
-message BidiStreamRequest {
-	int64 stroke = 1;
-}
-
-message BidiStreamResponse {
-	int64 stroke = 1;
-}

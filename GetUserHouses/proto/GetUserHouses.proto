@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package GetUserHouses;
+
+option go_package = "./proto;GetUserHouses";
+
+service GetUserHouses {
+	rpc GetUserHouses(GetUserHousesRequest) returns (GetUserHousesResponse) {}
+}
+
+message GetUserHousesRequest {
+	string session_id = 1;
+}
+
+message GetUserHousesResponse {
+	string errno = 1;
+	string err_msg=2;
+	// 查询到的数据的二进制流
+	bytes houses=3;
+}
+
+
+

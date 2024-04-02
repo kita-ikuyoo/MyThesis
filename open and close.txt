@@ -1,0 +1,3 @@
+consul agent -data-dir C:\tmp\consul -node=n3 -bind="192.168.87.198" -config-dir C:\tmp\conf -rejoin -join "192.168.87.161"
+
+consul leave
